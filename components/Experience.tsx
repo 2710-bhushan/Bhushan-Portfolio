@@ -24,7 +24,7 @@ const experiencesData = [
     role: "Generative AI Engineer & Full Stack Developer Intern",
     company: "CodeClause",
     location: "Mangaluru, India",
-    period: "May 2025 – Aug 2025",
+    period: "May 2025 – Dec 2025",
     techStack: ['Python', 'React', 'Node.js', 'Spring Boot', 'MySQL', 'LLMs', 'OpenAI APIs'],
     achievements: [
       { metric: "AI", desc: "Engineered LLM custom code generators & chatbots" },
@@ -43,7 +43,7 @@ const experiencesData = [
     role: "Virtual Intern: Software Engineering & Cyber Security",
     company: "Accenture & Deloitte",
     location: "Remote (Australia)",
-    period: "April 2025 – Present",
+    period: "Jan 2026 – Present",
     techStack: ['SDLC', 'Cyber Security', 'System Architecture', 'Risk Assessment'],
     achievements: [
       { metric: "SDLC", desc: "Applied scalable architecture principles" },
