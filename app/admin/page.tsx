@@ -63,7 +63,7 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "admin123") {
+    if (password === "M@toshree") {
       setIsAuthenticated(true);
       localStorage.setItem("portfolio_admin_auth", "true");
       setAuthError("");
