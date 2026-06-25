@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "destination": "https://bhushanportfolio.pythonanywhere.com/:path*",
+      "permanent": true
+    }
+  ]
+}
