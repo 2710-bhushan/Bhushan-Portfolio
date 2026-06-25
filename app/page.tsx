@@ -6,6 +6,7 @@ import Experience from "@/components/Experience";
 import Projects from "@/components/Projects";
 import Certifications from "@/components/Certifications";
 import Achievements from "@/components/Achievements";
+import MediaSlider from "@/components/MediaSlider";
 import Skills from "@/components/Skills";
 import Contact from "@/components/Contact";
 import Navbar from "@/components/Navbar";
@@ -37,6 +38,7 @@ export default function Home() {
       <Projects />
       <Certifications />
       <Achievements />
+      <MediaSlider />
       <Skills />
       <Contact />
     </main>

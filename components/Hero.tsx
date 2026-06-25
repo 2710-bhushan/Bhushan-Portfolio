@@ -388,13 +388,12 @@ export default function Hero() {
           <div className="hero-social" style={{ display: 'flex', gap: 20, marginTop: 40, alignItems: 'center' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--muted)', letterSpacing: '0.2em' }}>CONNECT</span>
             <div className="hero-social-divider" style={{ flex: 1, height: 1, background: 'rgba(74,96,112,0.3)' }} />
-            {(heroData?.socialLinks || [
-              { label: 'LinkedIn', href: 'https://www.linkedin.com/in/bhushaningale27', icon: 'in' },
-              { label: 'GitHub', href: 'https://github.com/2710-bhushan', icon: 'gh' },
-              { label: 'Mail', href: 'mailto:bhushaningale2006@gmail.com', icon: '@' },
-              { label: 'Resume', href: '/Bhushan_Resume.pdf', icon: 'cv' },
-            ]).map((s: any) => (
-              <a key={s.label} href={s.href} target="_blank" className="hover-target" style={{
+            {[
+              { label: 'LinkedIn', href: heroData?.linkedinUrl || 'https://www.linkedin.com/in/bhushaningale27', icon: 'in' },
+              { label: 'GitHub', href: heroData?.githubUrl || 'https://github.com/2710-bhushan', icon: 'gh' },
+              { label: 'Resume', href: heroData?.cvUrl || '/Bhushan_Resume.pdf', icon: 'cv' },
+            ].map((s: any) => (
+              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="hover-target" style={{
                 width: 36, height: 36,
                 border: '1px solid rgba(74,96,112,0.4)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',

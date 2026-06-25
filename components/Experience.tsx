@@ -62,6 +62,7 @@ import { useState } from "react";
 export default function Experience() {
   const [expList, setExpList] = useState<any[] | null>(null);
   const [eduList, setEduList] = useState<any[] | null>(null);
+  const [selectedCertificate, setSelectedCertificate] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/portfolio")
@@ -153,29 +154,65 @@ export default function Experience() {
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--muted)', letterSpacing: '0.15em', marginBottom: 10, textTransform: 'uppercase' }}>Tech Stack</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {job.techStack.map((t: string) => (
+                    {(job.techStack || []).map((t: string) => (
                       <span key={t} className="tag">{t}</span>
                     ))}
                   </div>
                 </div>
 
                 {/* Metrics */}
-                <div className="experience-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                  {job.achievements.map((a: any, i: number) => (
-                    <div key={i} style={{
-                      padding: '12px 8px',
-                      border: '1px solid rgba(0,240,255,0.1)',
-                      background: 'rgba(0,240,255,0.03)',
+                {Array.isArray(job.achievements) && job.achievements.length > 0 && (
+                  <div className="experience-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+                    {job.achievements.map((a: any, i: number) => (
+                      <div key={i} style={{
+                        padding: '12px 8px',
+                        border: '1px solid rgba(0,240,255,0.1)',
+                        background: 'rgba(0,240,255,0.03)',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center'
+                      }}>
+                        <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent)' }}>{a.metric}</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>{a.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Certificate Button */}
+                {job.certificateUrl && (
+                  <button 
+                    onClick={() => setSelectedCertificate(job.certificateUrl)}
+                    className="hover-target"
+                    style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '0.65rem',
+                      letterSpacing: '0.12em',
+                      padding: '10px 20px',
+                      background: 'rgba(0,240,255,0.06)',
+                      border: '1px solid rgba(0,240,255,0.25)',
+                      color: 'var(--accent)',
+                      cursor: 'pointer',
+                      width: '100%',
                       textAlign: 'center',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center'
-                    }}>
-                      <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent)' }}>{a.metric}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.55rem', color: 'var(--muted)', marginTop: 4, lineHeight: 1.4 }}>{a.desc}</div>
-                    </div>
-                  ))}
-                </div>
+                      transition: 'all 0.3s',
+                      clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px))'
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(0,240,255,0.12)';
+                      (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)';
+                      (e.currentTarget as HTMLElement).style.color = 'var(--text)';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLElement).style.background = 'rgba(0,240,255,0.06)';
+                      (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,240,255,0.25)';
+                      (e.currentTarget as HTMLElement).style.color = 'var(--accent)';
+                    }}
+                  >
+                    VIEW WORK CERTIFICATE 📄
+                  </button>
+                )}
               </div>
 
               {/* Right: Highlights list */}
@@ -184,7 +221,7 @@ export default function Experience() {
                   Key Responsibilities
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {job.responsibilities.map((resp: string, i: number) => (
+                  {(job.responsibilities || []).map((resp: string, i: number) => (
                     <div key={i} className="glass-card" style={{
                       padding: '16px 20px',
                       display: 'flex', alignItems: 'flex-start', gap: 14,
@@ -227,6 +264,103 @@ export default function Experience() {
         </div>
 
       </div>
+
+      {/* Dynamic Certificate Lightbox Modal */}
+      {selectedCertificate && (
+        <div 
+          onClick={() => setSelectedCertificate(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(2,4,8,0.94)',
+            backdropFilter: 'blur(12px)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()} 
+            style={{ 
+              position: 'relative', 
+              width: '90%', 
+              maxWidth: 960, 
+              height: '85vh', 
+              background: 'rgba(5,13,24,0.85)',
+              border: '1px solid rgba(0,240,255,0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: 24,
+              boxShadow: '0 0 60px rgba(0,240,255,0.15)',
+              clipPath: 'polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 20px 100%, 0 calc(100% - 20px))'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--accent)', letterSpacing: '0.12em' }}>
+                VERIFIABLE WORK EXPERIMENT CREDENTIAL
+              </span>
+              <button 
+                onClick={() => setSelectedCertificate(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '2rem',
+                  cursor: 'pointer',
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div style={{ flexGrow: 1, overflow: 'hidden', position: 'relative', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)' }}>
+              {selectedCertificate.toLowerCase().endsWith('.pdf') ? (
+                <iframe 
+                  src={selectedCertificate} 
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="Work Certificate Viewer"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img 
+                  src={selectedCertificate} 
+                  alt="Work Experience Certificate" 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'contain'
+                  }} 
+                />
+              )}
+            </div>
+            
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 20 }}>
+              <a 
+                href={selectedCertificate} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '0.72rem',
+                  color: 'var(--accent)',
+                  textDecoration: 'none',
+                  border: '1px solid rgba(0,240,255,0.25)',
+                  padding: '6px 16px',
+                  background: 'rgba(0,240,255,0.04)',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,240,255,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,240,255,0.04)'}
+              >
+                OPEN IN NEW TAB ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

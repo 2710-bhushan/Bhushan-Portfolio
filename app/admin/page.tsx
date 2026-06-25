@@ -9,9 +9,10 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
-  const [activeTab, setActiveTab] = useState<"certs" | "achievements" | "media" | "sections">("certs");
+  const [activeTab, setActiveTab] = useState<"certs" | "achievements" | "media" | "sections" | "slider">("certs");
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [isResume, setIsResume] = useState(false);
 
   // Core portfolio state from API
   const [portfolioData, setPortfolioData] = useState<any>({
@@ -22,7 +23,8 @@ export default function AdminPage() {
     skills: [],
     certifications: [],
     achievements: [],
-    media: []
+    media: [],
+    mediaSlider: []
   });
 
   // Load dynamic data
@@ -41,7 +43,8 @@ export default function AdminPage() {
           techBubbles: data.techBubbles || null,
           certifications: data.certifications || [],
           achievements: data.achievements || [],
-          media: data.media || []
+          media: data.media || [],
+          mediaSlider: data.mediaSlider || []
         });
       }
     } catch (err) {
@@ -61,14 +64,24 @@ export default function AdminPage() {
     }
   }, [isAuthenticated]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "M@toshree") {
-      setIsAuthenticated(true);
-      localStorage.setItem("portfolio_admin_auth", "true");
-      setAuthError("");
-    } else {
-      setAuthError("Incorrect admin password.");
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        localStorage.setItem("portfolio_admin_auth", "true");
+        setAuthError("");
+      } else {
+        setAuthError(data.error || "Incorrect admin password.");
+      }
+    } catch (err) {
+      setAuthError("Failed to communicate with authentication server.");
     }
   };
 
@@ -166,20 +179,28 @@ export default function AdminPage() {
   /* ========================================================
      2. ACHIEVEMENTS CRUD STATE & FUNCTIONS
      ======================================================== */
-  const [achForm, setAchForm] = useState({
+  const [achForm, setAchForm] = useState<{
+    id: string;
+    title: string;
+    date: string;
+    description: string;
+    images: Array<{ url: string; brief: string }>;
+  }>({
     id: "",
     title: "",
     date: "",
     description: "",
-    images: [] as string[]
+    images: []
   });
   const [isEditingAch, setIsEditingAch] = useState(false);
   const [newAchImage, setNewAchImage] = useState("");
+  const [newAchBrief, setNewAchBrief] = useState("");
 
   const resetAchForm = () => {
     setAchForm({ id: "", title: "", date: "", description: "", images: [] });
     setIsEditingAch(false);
     setNewAchImage("");
+    setNewAchBrief("");
   };
 
   const handleAchSubmit = async (e: React.FormEvent) => {
@@ -225,7 +246,12 @@ export default function AdminPage() {
       title: ach.title,
       date: ach.date || "",
       description: ach.description || "",
-      images: ach.images || []
+      images: (ach.images || []).map((img: any) => {
+        if (typeof img === 'string') {
+          return { url: img, brief: "" };
+        }
+        return { url: img.url || "", brief: img.brief || "" };
+      })
     });
     setIsEditingAch(true);
   };
@@ -247,9 +273,10 @@ export default function AdminPage() {
     if (!newAchImage.trim()) return;
     setAchForm(prev => ({
       ...prev,
-      images: [...prev.images, newAchImage.trim()]
+      images: [...prev.images, { url: newAchImage.trim(), brief: newAchBrief.trim() }]
     }));
     setNewAchImage("");
+    setNewAchBrief("");
   };
 
   const removeImageFromAch = (index: number) => {
@@ -272,6 +299,9 @@ export default function AdminPage() {
 
     const formData = new FormData();
     formData.append("file", uploadFile);
+    if (isResume) {
+      formData.append("isResume", "true");
+    }
 
     try {
       const res = await fetch("/api/upload", {
@@ -279,8 +309,9 @@ export default function AdminPage() {
         body: formData
       });
       if (res.ok) {
-        showNotification("File uploaded successfully!");
+        showNotification(isResume ? "Resume replaced successfully!" : "File uploaded successfully!");
         setUploadFile(null);
+        setIsResume(false);
         // Clear input element
         const fileInput = document.getElementById("admin-file-upload") as HTMLInputElement;
         if (fileInput) fileInput.value = "";
@@ -316,6 +347,82 @@ export default function AdminPage() {
   };
 
   /* ========================================================
+     3.5. MEDIA SLIDER CRUD STATE & FUNCTIONS
+     ======================================================== */
+  const [sliderForm, setSliderForm] = useState({
+    id: "",
+    title: "",
+    description: "",
+    url: ""
+  });
+  const [isEditingSlider, setIsEditingSlider] = useState(false);
+
+  const resetSliderForm = () => {
+    setSliderForm({ id: "", title: "", description: "", url: "" });
+    setIsEditingSlider(false);
+  };
+
+  const handleSliderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sliderForm.title || !sliderForm.url) return;
+    setLoading(true);
+
+    try {
+      if (isEditingSlider && sliderForm.id) {
+        const res = await fetch(`/api/media-slider/${sliderForm.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sliderForm)
+        });
+        if (res.ok) {
+          showNotification("Slider item updated successfully!");
+          resetSliderForm();
+          loadData();
+        }
+      } else {
+        const res = await fetch("/api/media-slider", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(sliderForm)
+        });
+        if (res.ok) {
+          showNotification("Slider item added successfully!");
+          resetSliderForm();
+          loadData();
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification("Error saving slider item.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSlider = (item: any) => {
+    setSliderForm({
+      id: item.id || item._id,
+      title: item.title,
+      description: item.description || "",
+      url: item.url
+    });
+    setIsEditingSlider(true);
+  };
+
+  const handleDeleteSlider = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this slider item?")) return;
+    try {
+      const res = await fetch(`/api/media-slider/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        showNotification("Slider item deleted.");
+        loadData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  /* ========================================================
      4. OPTIONAL CONTENT OVERRIDES FOR EXISTING SECTIONS
      ======================================================== */
   const [activeSectionSubTab, setActiveSectionSubTab] = useState<"hero" | "about" | "experience" | "projects" | "skills">("hero");
@@ -331,6 +438,8 @@ export default function AdminPage() {
     ctaPrimary: "",
     ctaSecondary: "",
     cvUrl: "",
+    githubUrl: "",
+    linkedinUrl: "",
     statsList: [{ num: "", label: "" }]
   });
 
@@ -366,7 +475,9 @@ export default function AdminPage() {
         rolesStr: Array.isArray(portfolioData.hero.roles) ? portfolioData.hero.roles.join(", ") : "",
         ctaPrimary: portfolioData.hero.ctaPrimary || "View Projects",
         ctaSecondary: portfolioData.hero.ctaSecondary || "Contact Me",
-        cvUrl: portfolioData.hero.cvUrl || "",
+        cvUrl: portfolioData.hero.cvUrl || "/Bhushan_Resume.pdf",
+        githubUrl: portfolioData.hero.githubUrl || "https://github.com/2710-bhushan",
+        linkedinUrl: portfolioData.hero.linkedinUrl || "https://www.linkedin.com/in/bhushaningale27",
         statsList: portfolioData.hero.stats || [{ num: "", label: "" }]
       });
     } else {
@@ -380,6 +491,8 @@ export default function AdminPage() {
         ctaPrimary: "View Projects",
         ctaSecondary: "Contact Me",
         cvUrl: "/Bhushan_Resume.pdf",
+        githubUrl: "https://github.com/2710-bhushan",
+        linkedinUrl: "https://www.linkedin.com/in/bhushaningale27",
         statsList: [
           { num: "40%", label: "Latency Cut" },
           { num: "35%", label: "Faster Pages" },
@@ -632,6 +745,8 @@ export default function AdminPage() {
         ctaPrimary: heroForm.ctaPrimary,
         ctaSecondary: heroForm.ctaSecondary,
         cvUrl: heroForm.cvUrl,
+        githubUrl: heroForm.githubUrl,
+        linkedinUrl: heroForm.linkedinUrl,
         stats: heroForm.statsList
       };
     } else if (section === "about") {
@@ -709,7 +824,8 @@ export default function AdminPage() {
       period: "Date Range",
       techStack: ["React"],
       achievements: [{ metric: "X%", desc: "Metric outcome" }],
-      responsibilities: ["Key responsibility description"]
+      responsibilities: ["Key responsibility description"],
+      certificateUrl: ""
     };
     setJobsList([...jobsList, newJob]);
   };
@@ -920,7 +1036,8 @@ export default function AdminPage() {
           {[
             { id: "certs", label: "Certifications", icon: FaCertificate },
             { id: "achievements", label: "Achievements", icon: FaAward },
-            { id: "media", label: "Media Uploads", icon: FaImages },
+            { id: "slider", label: "Media Slider", icon: FaImages },
+            { id: "media", label: "Media Uploads", icon: FaFilePdf },
             { id: "sections", label: "Page Content", icon: FaPenNib }
           ].map(tab => {
             const Icon = tab.icon;
@@ -1135,21 +1252,32 @@ export default function AdminPage() {
                     Achievement Photos & Gallery Images
                   </h4>
 
-                  <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-                    <input 
-                      type="text"
-                      value={newAchImage}
-                      onChange={e => setNewAchImage(e.target.value)}
-                      placeholder="Paste image URL (e.g. /uploads/image.jpg)..."
-                      style={{ flexGrow: 1, padding: 8, background: "rgba(0,0,0,0.2)", border: "1px solid var(--glass-border)", color: "white", fontSize: "0.85rem" }}
-                    />
-                    <button 
-                      type="button" 
-                      onClick={addImageToAch}
-                      style={{ padding: "8px 16px", background: "rgba(255,60,172,0.2)", border: "1px solid var(--accent3)", color: "var(--accent3)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}
-                    >
-                      ADD TO GALLERY
-                    </button>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <input 
+                        type="text"
+                        value={newAchImage}
+                        onChange={e => setNewAchImage(e.target.value)}
+                        placeholder="Paste image URL (e.g. /uploads/image.jpg)..."
+                        style={{ flexGrow: 1, padding: 8, background: "rgba(0,0,0,0.2)", border: "1px solid var(--glass-border)", color: "white", fontSize: "0.85rem" }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <input 
+                        type="text"
+                        value={newAchBrief}
+                        onChange={e => setNewAchBrief(e.target.value)}
+                        placeholder="Enter brief caption / event description for this photo..."
+                        style={{ flexGrow: 1, padding: 8, background: "rgba(0,0,0,0.2)", border: "1px solid var(--glass-border)", color: "white", fontSize: "0.85rem" }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={addImageToAch}
+                        style={{ padding: "8px 24px", background: "rgba(255,60,172,0.2)", border: "1px solid var(--accent3)", color: "var(--accent3)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "var(--font-mono)", whiteSpace: "nowrap" }}
+                      >
+                        ADD TO GALLERY
+                      </button>
+                    </div>
                   </div>
 
                   {achForm.images.length === 0 ? (
@@ -1157,25 +1285,42 @@ export default function AdminPage() {
                       No photos added to this achievement yet.
                     </div>
                   ) : (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                      {achForm.images.map((img, idx) => (
-                        <div key={idx} style={{ position: "relative", width: 100, height: 70, border: "1px solid var(--glass-border)", overflow: "hidden" }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={img} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          <button 
-                            type="button"
-                            onClick={() => removeImageFromAch(idx)}
-                            style={{
-                              position: "absolute", top: 2, right: 2,
-                              width: 18, height: 18, borderRadius: "50%",
-                              background: "rgba(255,0,0,0.8)", border: "none", color: "white",
-                              fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center"
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                      {achForm.images.map((img: any, idx) => {
+                        const url = typeof img === 'string' ? img : img.url;
+                        const brief = typeof img === 'string' ? '' : img.brief;
+                        
+                        return (
+                          <div key={idx} style={{ 
+                            position: "relative", 
+                            width: 140, 
+                            border: "1px solid var(--glass-border)", 
+                            background: "rgba(0,0,0,0.35)",
+                            padding: 6,
+                            clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))'
+                          }}>
+                            <div style={{ height: 80, overflow: "hidden", position: "relative" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                              <button 
+                                type="button"
+                                onClick={() => removeImageFromAch(idx)}
+                                style={{
+                                  position: "absolute", top: 2, right: 2,
+                                  width: 18, height: 18, borderRadius: "50%",
+                                  background: "rgba(255,0,0,0.8)", border: "none", color: "white",
+                                  fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center"
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                            <div style={{ fontSize: "0.6rem", color: "var(--muted)", marginTop: 4, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }} title={brief}>
+                              {brief || "(No caption)"}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1232,6 +1377,112 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* TAB 2.5: MEDIA SLIDER */}
+          {activeTab === "slider" && (
+            <div className="glass-card" style={{ padding: 32, border: "1px solid var(--glass-border)", background: "var(--glass)" }}>
+              <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 800, color: "var(--accent)", marginBottom: 6 }}>
+                Manage Media Slider Items
+              </h2>
+              <div className="cyber-divider" style={{ marginBottom: 28, maxWidth: 200 }} />
+
+              {/* Form */}
+              <form onSubmit={handleSliderSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 40 }}>
+                <div style={{ gridColumn: "span 2" }}>
+                  <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 6 }}>Slider Item Title *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={sliderForm.title}
+                    onChange={e => setSliderForm({ ...sliderForm, title: e.target.value })}
+                    placeholder="e.g. Smart India Hackathon Winner"
+                    style={{ width: "100%", padding: 10, background: "rgba(0,0,0,0.3)", border: "1px solid var(--glass-border)", color: "white" }}
+                  />
+                </div>
+                <div style={{ gridColumn: "span 2" }}>
+                  <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 6 }}>Description *</label>
+                  <textarea 
+                    rows={3}
+                    required
+                    value={sliderForm.description}
+                    onChange={e => setSliderForm({ ...sliderForm, description: e.target.value })}
+                    placeholder="e.g. Awarded first prize by Ministry for solving healthcare challenges."
+                    style={{ width: "100%", padding: 10, background: "rgba(0,0,0,0.3)", border: "1px solid var(--glass-border)", color: "white", fontFamily: "inherit" }}
+                  />
+                </div>
+                <div style={{ gridColumn: "span 2" }}>
+                  <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 6 }}>Image URL *</label>
+                  <input 
+                    type="text"
+                    required
+                    value={sliderForm.url}
+                    onChange={e => setSliderForm({ ...sliderForm, url: e.target.value })}
+                    placeholder="/uploads/... (Or paste external URL)"
+                    style={{ width: "100%", padding: 10, background: "rgba(0,0,0,0.3)", border: "1px solid var(--glass-border)", color: "white" }}
+                  />
+                  <small style={{ fontSize: "0.6rem", color: "var(--muted)", marginTop: 4, display: "block" }}>
+                    Tip: Upload the image under the "Media Uploads" tab first, then copy/paste the URL here!
+                  </small>
+                </div>
+
+                <div style={{ gridColumn: "span 2", display: "flex", gap: 12, marginTop: 10 }}>
+                  <button type="submit" disabled={loading} className="btn-primary" style={{ padding: "10px 24px", cursor: "pointer" }}>
+                    {isEditingSlider ? <><FaPen /> Update Slide</> : <><FaPlus /> Add Slide</>}
+                  </button>
+                  {isEditingSlider && (
+                    <button type="button" onClick={resetSliderForm} style={{ padding: "10px 20px", background: "none", border: "1px solid var(--muted)", color: "var(--text)", cursor: "pointer" }}>
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* List */}
+              <h3 style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--muted)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 16 }}>
+                Currently Active Slider Items ({portfolioData.mediaSlider?.length || 0})
+              </h3>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+                {!portfolioData.mediaSlider || portfolioData.mediaSlider.length === 0 ? (
+                  <div style={{ gridColumn: "span 10", padding: 20, textAlign: "center", border: "1px dashed var(--glass-border)", color: "var(--muted)" }}>
+                    No slider items added yet.
+                  </div>
+                ) : (
+                  portfolioData.mediaSlider.map((m: any) => (
+                    <div 
+                      key={m.id} 
+                      className="glass-card" 
+                      style={{ 
+                        padding: 16, 
+                        border: "1px solid var(--glass-border)", 
+                        background: "rgba(0,0,0,0.3)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 12
+                      }}
+                    >
+                      <div style={{ height: 140, overflow: "hidden", position: "relative" }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={m.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                      <div style={{ flexGrow: 1 }}>
+                        <h4 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 6px" }}>{m.title}</h4>
+                        <p style={{ fontSize: "0.75rem", color: "var(--muted)", lineHeight: 1.4 }}>{m.description}</p>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+                        <button onClick={() => handleEditSlider(m)} style={{ flexGrow: 1, padding: 8, background: "rgba(0,240,255,0.1)", border: "1px solid var(--accent)", color: "var(--accent)", cursor: "pointer", fontFamily: "var(--font-mono)", fontSize: "0.7rem" }}>
+                          EDIT
+                        </button>
+                        <button onClick={() => handleDeleteSlider(m.id)} style={{ padding: 8, background: "rgba(255,60,172,0.1)", border: "1px solid var(--accent3)", color: "var(--accent3)", cursor: "pointer" }}>
+                          <FaTrash size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
           {/* TAB 3: MEDIA UPLOADER */}
           {activeTab === "media" && (
             <div className="glass-card" style={{ padding: 32, border: "1px solid var(--glass-border)", background: "var(--glass)" }}>
@@ -1255,9 +1506,26 @@ export default function AdminPage() {
                     type="file" 
                     id="admin-file-upload"
                     accept="image/*,application/pdf"
-                    onChange={e => setUploadFile(e.target.files ? e.target.files[0] : null)}
+                    onChange={e => {
+                      const file = e.target.files ? e.target.files[0] : null;
+                      setUploadFile(file);
+                      if (file && !(file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf"))) {
+                        setIsResume(false);
+                      }
+                    }}
                     style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}
                   />
+                  {uploadFile && (uploadFile.type === "application/pdf" || uploadFile.name.toLowerCase().endsWith(".pdf")) && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.8rem", color: "var(--accent)", cursor: "pointer", fontFamily: "var(--font-mono)" }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isResume} 
+                        onChange={e => setIsResume(e.target.checked)} 
+                        style={{ cursor: "pointer" }}
+                      />
+                      MARK THIS PDF AS MY PORTFOLIO RESUME
+                    </label>
+                  )}
                   {uploadFile && (
                     <div style={{ fontSize: "0.75rem", color: "var(--accent)" }}>
                       Selected: {uploadFile.name} ({(uploadFile.size / 1024).toFixed(1)} KB)
@@ -1527,6 +1795,36 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+                    <div>
+                      <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 6 }}>Resume (PDF) Path/URL</label>
+                      <input 
+                        type="text"
+                        value={heroForm.cvUrl}
+                        onChange={e => setHeroForm({ ...heroForm, cvUrl: e.target.value })}
+                        style={{ width: "100%", padding: 8, background: "rgba(0,0,0,0.3)", border: "1px solid var(--glass-border)", color: "white" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 6 }}>GitHub Profile URL</label>
+                      <input 
+                        type="text"
+                        value={heroForm.githubUrl}
+                        onChange={e => setHeroForm({ ...heroForm, githubUrl: e.target.value })}
+                        style={{ width: "100%", padding: 8, background: "rgba(0,0,0,0.3)", border: "1px solid var(--glass-border)", color: "white" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 6 }}>LinkedIn Profile URL</label>
+                      <input 
+                        type="text"
+                        value={heroForm.linkedinUrl}
+                        onChange={e => setHeroForm({ ...heroForm, linkedinUrl: e.target.value })}
+                        style={{ width: "100%", padding: 8, background: "rgba(0,0,0,0.3)", border: "1px solid var(--glass-border)", color: "white" }}
+                      />
+                    </div>
+                  </div>
+
                   <div style={{ marginTop: 10 }}>
                     <button type="button" onClick={() => handleSectionSave("hero")} className="btn-primary" style={{ padding: "10px 24px", cursor: "pointer" }}>
                       Save Hero Section
@@ -1785,7 +2083,7 @@ export default function AdminPage() {
                           </div>
 
                           {/* Key Responsibilities */}
-                          <div>
+                          <div style={{ marginBottom: 16 }}>
                             <label style={{ display: "block", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 4 }}>Responsibilities highlights (One per line)</label>
                             <textarea 
                               rows={4}
@@ -1796,6 +2094,44 @@ export default function AdminPage() {
                                 setJobsList(newList);
                               }}
                               style={{ width: "100%", padding: 6, background: "rgba(0,0,0,0.2)", border: "1px solid var(--glass-border)", color: "white", fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}
+                            />
+                          </div>
+
+                          {/* Job Metrics / Achievements */}
+                          <div style={{ marginBottom: 16 }}>
+                            <label style={{ display: "block", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 4 }}>Key Metrics / Achievements (Format: Metric:Description, one per line)</label>
+                            <textarea 
+                              rows={3}
+                              value={Array.isArray(job.achievements) ? job.achievements.map((a: any) => `${a.metric}:${a.desc}`).join("\n") : ""}
+                              onChange={e => {
+                                const newList = [...jobsList];
+                                newList[idx].achievements = e.target.value.split("\n").map(line => {
+                                  const parts = line.split(":");
+                                  return {
+                                    metric: parts[0]?.trim() || "",
+                                    desc: parts[1]?.trim() || ""
+                                  };
+                                }).filter(a => a.metric);
+                                setJobsList(newList);
+                              }}
+                              placeholder="AI:Engineered LLM chatbots&#10;Full-Stack:Developed scalable web apps"
+                              style={{ width: "100%", padding: 6, background: "rgba(0,0,0,0.2)", border: "1px solid var(--glass-border)", color: "white", fontSize: "0.85rem", fontFamily: "var(--font-mono)" }}
+                            />
+                          </div>
+
+                          {/* Certificate URL */}
+                          <div>
+                            <label style={{ display: "block", fontSize: "0.6rem", color: "var(--muted)", textTransform: "uppercase", marginBottom: 4 }}>Certificate URL / Image URL (optional)</label>
+                            <input 
+                              type="text"
+                              value={job.certificateUrl || ""}
+                              onChange={e => {
+                                const newList = [...jobsList];
+                                newList[idx].certificateUrl = e.target.value;
+                                setJobsList(newList);
+                              }}
+                              placeholder="/uploads/... (Or external link)"
+                              style={{ width: "100%", padding: 6, background: "rgba(0,0,0,0.2)", border: "1px solid var(--glass-border)", color: "white" }}
                             />
                           </div>
                         </div>

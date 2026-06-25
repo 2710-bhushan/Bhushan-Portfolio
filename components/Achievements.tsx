@@ -16,6 +16,122 @@ function useReveal(delay = 0) {
   return ref;
 }
 
+// Auto-scrolling Photo Gallery Component
+function AchievementGallery({ images, onImageClick }: { images: any[]; onImageClick: (url: string) => void }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveIdx(prev => (prev + 1) % images.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  if (!images || images.length === 0) return null;
+
+  const activeImg = images[activeIdx];
+  const url = typeof activeImg === 'string' ? activeImg : activeImg?.url || "";
+  const brief = typeof activeImg === 'string' ? "" : activeImg?.brief || "";
+
+  return (
+    <div style={{
+      width: '100%',
+      height: 240,
+      position: 'relative',
+      overflow: 'hidden',
+      border: '1px solid var(--glass-border)',
+      clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px))',
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      {/* Slider Wrapper */}
+      <div 
+        onClick={() => onImageClick(url)}
+        className="hover-target"
+        style={{
+          width: '100%',
+          height: '100%',
+          position: 'relative',
+          cursor: 'pointer',
+        }}
+      >
+        {/* Active Image */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img 
+          src={url} 
+          alt={brief || "Achievement view"}
+          key={url}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.4s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        />
+
+        {/* Brief/Caption Overlay */}
+        {brief && (
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(180deg, transparent 0%, rgba(2,4,8,0.95) 80%)',
+            padding: '24px 16px 12px',
+            fontFamily: 'var(--font-body)',
+            fontSize: '0.8rem',
+            color: '#e8f4f8',
+            borderTop: '1px solid rgba(255,255,255,0.04)',
+            textAlign: 'left'
+          }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.62rem', color: 'var(--accent3)', display: 'block', textTransform: 'uppercase', marginBottom: 2 }}>Caption</span>
+            {brief}
+          </div>
+        )}
+      </div>
+
+      {/* Navigation Indicators */}
+      {images.length > 1 && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          display: 'flex',
+          gap: 6,
+          background: 'rgba(2,4,8,0.65)',
+          backdropFilter: 'blur(6px)',
+          padding: '4px 8px',
+          borderRadius: 20,
+          border: '1px solid rgba(255,255,255,0.08)',
+          zIndex: 10
+        }}>
+          {images.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveIdx(idx)}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: idx === activeIdx ? 'var(--accent3)' : 'rgba(255,255,255,0.3)',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'background 0.3s'
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Achievements() {
   const [achievements, setAchievements] = useState<any[]>([]);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -73,86 +189,57 @@ export default function Achievements() {
                   pointerEvents: 'none',
                 }} />
 
-                <div className="ach-layout" style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+                <div className="ach-layout-flex" style={{ display: 'flex', flexWrap: 'wrap', gap: 36 }}>
                   
-                  {/* Top content row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                        <span style={{ color: 'var(--accent3)', fontSize: '1.2rem', display: 'flex' }}><FaAward /></span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--accent3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                          Achievement
-                        </span>
+                  {/* Left Column: Content */}
+                  <div style={{ flex: '1 1 500px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    {/* Top content row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ color: 'var(--accent3)', fontSize: '1.2rem', display: 'flex' }}><FaAward /></span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--accent3)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+                            Achievement
+                          </span>
+                        </div>
+                        <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text)' }}>
+                          {ach.title}
+                        </h3>
                       </div>
-                      <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text)' }}>
-                        {ach.title}
-                      </h3>
+                      <div style={{
+                        padding: '4px 12px',
+                        border: '1px solid rgba(255,60,172,0.2)',
+                        background: 'rgba(255,60,172,0.05)',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.65rem',
+                        color: 'var(--accent3)',
+                        letterSpacing: '0.1em',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {ach.date}
+                      </div>
                     </div>
-                    <div style={{
-                      padding: '4px 12px',
-                      border: '1px solid rgba(255,60,172,0.2)',
-                      background: 'rgba(255,60,172,0.05)',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '0.65rem',
-                      color: 'var(--accent3)',
-                      letterSpacing: '0.1em',
-                      whiteSpace: 'nowrap'
+
+                    <div className="cyber-divider" style={{ opacity: 0.5 }} />
+
+                    {/* Body description */}
+                    <p style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '0.95rem',
+                      lineHeight: 1.8,
+                      color: 'rgba(232,244,248,0.7)'
                     }}>
-                      {ach.date}
-                    </div>
+                      {ach.description}
+                    </p>
                   </div>
 
-                  <div className="cyber-divider" style={{ opacity: 0.5 }} />
-
-                  {/* Body description */}
-                  <p style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: '0.95rem',
-                    lineHeight: 1.8,
-                    color: 'rgba(232,244,248,0.7)',
-                    maxWidth: 800
-                  }}>
-                    {ach.description}
-                  </p>
-
-                  {/* Photo Gallery */}
+                  {/* Right Column: Slide Auto-Gallery */}
                   {hasImages && (
-                    <div>
+                    <div style={{ flex: '0 0 340px', minWidth: '280px', maxWidth: '100%', display: 'flex', flexDirection: 'column' }}>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <FaImage /> Photo Gallery ({ach.images.length})
+                        <FaAward /> Event Gallery ({ach.images.length})
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                        {ach.images.map((imgUrl: string, imgIdx: number) => (
-                          <div 
-                            key={imgIdx}
-                            onClick={() => setLightboxImage(imgUrl)}
-                            className="hover-target"
-                            style={{
-                              width: 140,
-                              height: 90,
-                              overflow: 'hidden',
-                              border: '1px solid var(--glass-border)',
-                              position: 'relative',
-                              cursor: 'pointer',
-                              clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px))'
-                            }}
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img 
-                              src={imgUrl} 
-                              alt={`Achievement thumbnail ${imgIdx + 1}`}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                transition: 'transform 0.4s'
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                            />
-                          </div>
-                        ))}
-                      </div>
+                      <AchievementGallery images={ach.images} onImageClick={setLightboxImage} />
                     </div>
                   )}
 

@@ -17,6 +17,7 @@ interface LocalDB {
   certifications: any[];
   achievements: any[];
   media: any[];
+  mediaSlider?: any[];
 }
 
 const DEFAULT_DB: LocalDB = {
@@ -30,6 +31,7 @@ const DEFAULT_DB: LocalDB = {
   certifications: [],
   achievements: [],
   media: [],
+  mediaSlider: [],
 };
 
 // Helper to ensure JSON DB exists and return its contents
@@ -79,6 +81,7 @@ export async function getPortfolioData() {
       const certifications = await db.collection("certifications").find({}).toArray();
       const achievements = await db.collection("achievements").find({}).toArray();
       const media = await db.collection("media").find({}).toArray();
+      const mediaSlider = await db.collection("mediaSlider").find({}).toArray();
       
       return {
         hero: settings?.hero || null,
@@ -91,6 +94,7 @@ export async function getPortfolioData() {
         certifications: certifications.map(c => ({ ...c, id: c._id.toString() })),
         achievements: achievements.map(a => ({ ...a, id: a._id.toString() })),
         media: media.map(m => ({ ...m, id: m._id.toString() })),
+        mediaSlider: mediaSlider.map(m => ({ ...m, id: m._id.toString() })),
       };
     } catch (e) {
       console.error("MongoDB error, falling back to JSON:", e);
@@ -159,10 +163,11 @@ export async function addCertification(cert: any) {
 
 export async function updateCertification(id: string, cert: any) {
   const client = await getDbClient();
+  const { _id, id: _, ...updateData } = cert;
   if (client) {
     try {
       const db = client.db();
-      await db.collection("certifications").updateOne({ _id: id as any }, { $set: cert });
+      await db.collection("certifications").updateOne({ _id: id as any }, { $set: updateData });
       return { success: true };
     } catch (e) {
       console.error("MongoDB error, updating in JSON:", e);
@@ -222,10 +227,11 @@ export async function addAchievement(ach: any) {
 
 export async function updateAchievement(id: string, ach: any) {
   const client = await getDbClient();
+  const { _id, id: _, ...updateData } = ach;
   if (client) {
     try {
       const db = client.db();
-      await db.collection("achievements").updateOne({ _id: id as any }, { $set: ach });
+      await db.collection("achievements").updateOne({ _id: id as any }, { $set: updateData });
       return { success: true };
     } catch (e) {
       console.error("MongoDB error, updating in JSON:", e);
@@ -252,6 +258,93 @@ export async function deleteAchievement(id: string) {
 
   const db = getLocalDB();
   db.achievements = db.achievements.filter(a => a.id !== id);
+  saveLocalDB(db);
+  return { success: true };
+}
+
+// Media Slider Operations
+export async function getMediaSlider() {
+  const data = await getPortfolioData();
+  return data.mediaSlider || [];
+}
+
+export async function addMediaSliderItem(item: any) {
+  const client = await getDbClient();
+  const id = Math.random().toString(36).substring(2, 9);
+  const newItem = { ...item, _id: id, id };
+
+  if (client) {
+    try {
+      const db = client.db();
+      await db.collection("mediaSlider").insertOne({ ...item, _id: id });
+      return newItem;
+    } catch (e) {
+      console.error("MongoDB error, adding to JSON:", e);
+    }
+  }
+
+  const db = getLocalDB();
+  if (!db.mediaSlider) db.mediaSlider = [];
+  db.mediaSlider.push(newItem);
+  saveLocalDB(db);
+  return newItem;
+}
+
+export async function updateMediaSliderItem(id: string, item: any) {
+  const client = await getDbClient();
+  const { _id, id: _, ...updateData } = item;
+  if (client) {
+    try {
+      const db = client.db();
+      await db.collection("mediaSlider").updateOne({ _id: id as any }, { $set: updateData });
+      return { success: true };
+    } catch (e) {
+      console.error("MongoDB error, updating slider in JSON:", e);
+    }
+  }
+
+  const db = getLocalDB();
+  if (!db.mediaSlider) db.mediaSlider = [];
+  db.mediaSlider = db.mediaSlider.map(m => (m.id === id ? { ...m, ...item } : m));
+  saveLocalDB(db);
+  return { success: true };
+}
+
+export async function deleteMediaSliderItem(id: string) {
+  const client = await getDbClient();
+  
+  // Find URL to delete file if it's local
+  let url = "";
+  const currentSlider = await getMediaSlider();
+  const found = currentSlider.find((m: any) => m.id === id);
+  if (found) {
+    url = found.url;
+  }
+
+  if (url && url.startsWith("/uploads/")) {
+    const filePath = path.join(process.cwd(), "public", url);
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error("Failed to delete file from disk:", err);
+      }
+    }
+  }
+
+  if (client) {
+    try {
+      const db = client.db();
+      await db.collection("mediaSlider").deleteOne({ _id: id as any });
+      return { success: true };
+    } catch (e) {
+      console.error("MongoDB error, deleting from JSON:", e);
+    }
+  }
+
+  const db = getLocalDB();
+  if (!db.mediaSlider) db.mediaSlider = [];
+  db.mediaSlider = db.mediaSlider.filter(m => m.id !== id);
   saveLocalDB(db);
   return { success: true };
 }

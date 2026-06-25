@@ -25,6 +25,18 @@ export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [sent, setSent] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [heroData, setHeroData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/portfolio")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.hero) {
+          setHeroData(data.hero);
+        }
+      })
+      .catch(err => console.error("Error loading Contact details:", err));
+  }, []);
 
   const inputStyle = {
     width: '100%', padding: '14px 18px',
@@ -122,11 +134,9 @@ export default function Contact() {
             {/* Contact cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[
-                { icon: MdEmail, label: 'Email', value: 'bhushaningale2006@gmail.com', href: 'mailto:bhushaningale2006@gmail.com' },
-                { icon: MdPhone, label: 'Phone', value: '+91 9405932763', href: 'tel:+919405932763' },
-                { icon: FaLinkedinIn, label: 'LinkedIn', value: 'Connect on LinkedIn', href: 'https://www.linkedin.com/in/bhushaningale27' },
-                { icon: FaGithub, label: 'GitHub', value: 'github.com/bhushan-ingale', href: 'https://github.com/2710-bhushan' },
-                { icon: FaFileLines, label: 'Resume', value: 'View Resume (PDF)', href: '/Bhushan_Resume.pdf' },
+                { icon: FaLinkedinIn, label: 'LinkedIn', value: 'Connect on LinkedIn', href: heroData?.linkedinUrl || 'https://www.linkedin.com/in/bhushaningale27' },
+                { icon: FaGithub, label: 'GitHub', value: 'github.com/bhushan-ingale', href: heroData?.githubUrl || 'https://github.com/2710-bhushan' },
+                { icon: FaFileLines, label: 'Resume', value: 'View Resume (PDF)', href: heroData?.cvUrl || '/Bhushan_Resume.pdf' },
               ].map((c: { icon: IconType; label: string; value: string; href: string }) => (
                 <a key={c.label} href={c.href}
                   target={c.href.startsWith('http') || c.href.endsWith('.pdf') ? '_blank' : undefined}

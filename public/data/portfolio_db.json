@@ -104,7 +104,17 @@
   "skills": null,
   "certifications": [],
   "achievements": [],
-  "media": [],
+  "media": [
+    {
+      "name": "DSC_0134.JPG",
+      "url": "/uploads/1782366801092_DSC_0134.JPG",
+      "type": "image/jpeg",
+      "size": 7137608,
+      "uploadedAt": "2026-06-25T05:53:21.100Z",
+      "_id": "8a950e1",
+      "id": "8a950e1"
+    }
+  ],
   "education": [
     {
       "school": "Govt College of Engineering Jalgaon",
@@ -117,6 +127,15 @@
       "degree": "Diploma — Computer Engineering",
       "period": "Sep 2022 – Jul 2025",
       "grade": "90.74%"
+    }
+  ],
+  "mediaSlider": [
+    {
+      "id": "sglw2fo",
+      "title": "Diploma Complete",
+      "description": "-",
+      "url": "/uploads/1782366801092_DSC_0134.JPG",
+      "_id": "sglw2fo"
     }
   ]
 }
