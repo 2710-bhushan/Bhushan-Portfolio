@@ -212,7 +212,21 @@ function Orb3D() {
 }
 
 export default function Hero() {
-  const role = useTypewriter(ROLES);
+  const [heroData, setHeroData] = useState<any>(null);
+
+  useEffect(() => {
+    fetch("/api/portfolio")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.hero) {
+          setHeroData(data.hero);
+        }
+      })
+      .catch(err => console.error("Error fetching Hero data:", err));
+  }, []);
+
+  const roles = heroData?.roles || ROLES;
+  const role = useTypewriter(roles);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -286,11 +300,11 @@ export default function Hero() {
             letterSpacing: '0.15em',
           }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00ff88', boxShadow: '0 0 8px #00ff88', animation: 'pulse-glow 2s infinite' }} />
-            AVAILABLE FOR HIRE
+            {heroData?.statusBadge || "AVAILABLE FOR HIRE"}
           </div>
 
           <div style={{ marginBottom: 8, fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--muted)' }}>
-            Hello, I'm
+            {heroData?.greeting || "Hello, I'm"}
           </div>
 
           <h1 style={{
@@ -301,9 +315,9 @@ export default function Hero() {
             marginBottom: 16,
             letterSpacing: '-0.02em',
           }}>
-            <span style={{ color: 'var(--text)' }}>Bhushan</span>
+            <span style={{ color: 'var(--text)' }}>{heroData?.firstName || "Bhushan"}</span>
             <br />
-            <span className="gradient-text">Ingale</span>
+            <span className="gradient-text">{heroData?.lastName || "Ingale"}</span>
           </h1>
 
           <div style={{
@@ -326,20 +340,19 @@ export default function Hero() {
             marginBottom: 40,
             maxWidth: 480,
           }}>
-            Crafting scalable web applications with the MERN stack. Passionate about clean architecture, 
-            performance optimization, and building seamless user experiences that make a difference.
+            {heroData?.description || "Crafting scalable web applications with the MERN stack. Passionate about clean architecture, performance optimization, and building seamless user experiences that make a difference."}
           </p>
 
           {/* Stats */}
           <div className="hero-stats" style={{ display: 'flex', gap: 32, marginBottom: 40 }}>
-            {[
+            {(heroData?.stats || [
               { num: '40%', label: 'Latency Cut', suffix: '' },
               { num: '35%', label: 'Faster Pages', suffix: '' },
               { num: '10+', label: 'Projects', suffix: '' },
-            ].map(stat => (
+            ]).map((stat: any) => (
               <div key={stat.label}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 800, color: 'var(--accent)' }}>
-                  {stat.num}<span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>{stat.suffix}</span>
+                  {stat.num}<span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>{stat.suffix || ''}</span>
                 </div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--muted)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
                   {stat.label}
@@ -351,7 +364,7 @@ export default function Hero() {
           {/* CTAs */}
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             <a href="#projects" className="btn-primary hover-target">
-              View Projects
+              {heroData?.ctaPrimary || "View Projects"}
             </a>
             <a href="#contact" className="hover-target" style={{
               fontFamily: 'var(--font-mono)',
@@ -367,7 +380,7 @@ export default function Hero() {
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--text)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(232,244,248,0.3)'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--muted)'; (e.currentTarget as HTMLElement).style.borderColor = 'rgba(74,96,112,0.4)'; }}
             >
-              Contact Me
+              {heroData?.ctaSecondary || "Contact Me"}
             </a>
           </div>
 
@@ -375,12 +388,12 @@ export default function Hero() {
           <div className="hero-social" style={{ display: 'flex', gap: 20, marginTop: 40, alignItems: 'center' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--muted)', letterSpacing: '0.2em' }}>CONNECT</span>
             <div className="hero-social-divider" style={{ flex: 1, height: 1, background: 'rgba(74,96,112,0.3)' }} />
-            {[
+            {(heroData?.socialLinks || [
               { label: 'LinkedIn', href: 'https://www.linkedin.com/in/bhushaningale27', icon: 'in' },
               { label: 'GitHub', href: 'https://github.com/2710-bhushan', icon: 'gh' },
               { label: 'Mail', href: 'mailto:bhushaningale2006@gmail.com', icon: '@' },
               { label: 'Resume', href: '/Bhushan_Resume.pdf', icon: 'cv' },
-            ].map(s => (
+            ]).map((s: any) => (
               <a key={s.label} href={s.href} target="_blank" className="hover-target" style={{
                 width: 36, height: 36,
                 border: '1px solid rgba(74,96,112,0.4)',

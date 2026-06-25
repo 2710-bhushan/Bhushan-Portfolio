@@ -366,11 +366,25 @@ const projects = [
 
 
 export default function Projects() {
+  const [projList, setProjList] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/portfolio")
+      .then(res => res.json())
+      .then(data => {
+        if (data && Array.isArray(data.projects)) {
+          setProjList(data.projects);
+        }
+      })
+      .catch(err => console.error("Error loading dynamic projects:", err));
+  }, []);
+
   const r1 = useReveal();
   const [showAllProjects, setShowAllProjects] = useState(false);
   const primaryProjectCount = 6;
-  const visibleProjects = showAllProjects ? projects : projects.slice(0, primaryProjectCount);
-  const hasMoreProjects = projects.length > primaryProjectCount;
+  const currentProjects = projList || projects;
+  const visibleProjects = showAllProjects ? currentProjects : currentProjects.slice(0, primaryProjectCount);
+  const hasMoreProjects = currentProjects.length > primaryProjectCount;
 
   return (
     <section id="projects" className="projects-section" style={{ padding: '120px 60px' }}>

@@ -57,10 +57,37 @@ const experiencesData = [
   }
 ];
 
+import { useState } from "react";
+
 export default function Experience() {
+  const [expList, setExpList] = useState<any[] | null>(null);
+  const [eduList, setEduList] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/portfolio")
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          if (Array.isArray(data.experience)) {
+            setExpList(data.experience);
+          }
+          if (Array.isArray(data.education)) {
+            setEduList(data.education);
+          }
+        }
+      })
+      .catch(err => console.error("Error loading experience dynamic data:", err));
+  }, []);
+
   const r1 = useReveal();
   const r2 = useReveal(200);
   const r3 = useReveal(400);
+
+  const jobs = expList || experiencesData;
+  const education = eduList || [
+    { school: 'Govt College of Engineering Jalgaon', degree: 'B.Tech Computer Engineering', period: 'Aug 2025 – Jul 2028', grade: 'CGPA: 9.68/10' },
+    { school: "GF's Godavari College", degree: 'Diploma — Computer Engineering', period: 'Sep 2022 – Jul 2025', grade: '90.74%' },
+  ];
 
   return (
     <section id="experience" className="experience-section" style={{ padding: '120px 60px', background: 'rgba(5,13,24,0.6)' }}>
@@ -76,7 +103,7 @@ export default function Experience() {
 
         {/* Experience List */}
         <div className="reveal" ref={r2} style={{ display: 'flex', flexDirection: 'column', gap: 80 }}>
-          {experiencesData.map((job) => (
+          {jobs.map((job) => (
             <div key={job.id} className="experience-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, alignItems: 'start' }}>
               
               {/* Left: Job card */}
@@ -126,7 +153,7 @@ export default function Experience() {
                 <div style={{ marginBottom: 24 }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6rem', color: 'var(--muted)', letterSpacing: '0.15em', marginBottom: 10, textTransform: 'uppercase' }}>Tech Stack</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {job.techStack.map(t => (
+                    {job.techStack.map((t: string) => (
                       <span key={t} className="tag">{t}</span>
                     ))}
                   </div>
@@ -134,7 +161,7 @@ export default function Experience() {
 
                 {/* Metrics */}
                 <div className="experience-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                  {job.achievements.map((a, i) => (
+                  {job.achievements.map((a: any, i: number) => (
                     <div key={i} style={{
                       padding: '12px 8px',
                       border: '1px solid rgba(0,240,255,0.1)',
@@ -157,7 +184,7 @@ export default function Experience() {
                   Key Responsibilities
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {job.responsibilities.map((resp, i) => (
+                  {job.responsibilities.map((resp: string, i: number) => (
                     <div key={i} className="glass-card" style={{
                       padding: '16px 20px',
                       display: 'flex', alignItems: 'flex-start', gap: 14,
@@ -185,10 +212,7 @@ export default function Experience() {
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', paddingLeft: 20, width: 'fit-content' }}>
             <div style={{ position: 'absolute', left: 6, top: 8, bottom: 8, width: 1, background: 'linear-gradient(180deg, var(--accent), rgba(0,240,255,0.1))' }} />
-            {[
-              { school: 'Govt College of Engineering Jalgaon', degree: 'B.Tech Computer Engineering', period: 'Aug 2025 – Jul 2028', grade: 'CGPA: 9.68/10' },
-              { school: "GF's Godavari College", degree: 'Diploma — Computer Engineering', period: 'Sep 2022 – Jul 2025', grade: '90.74%' },
-            ].map((e, i) => (
+            {education.map((e: any, i: number) => (
               <div key={i} style={{ paddingLeft: 16, paddingBottom: 24, position: 'relative' }}>
                 <div style={{ position: 'absolute', left: -14, top: 6, width: 10, height: 10, borderRadius: '50%', background: i === 0 ? 'var(--accent)' : 'var(--muted)', boxShadow: i === 0 ? '0 0 10px var(--accent)' : 'none' }} />
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{e.school}</div>

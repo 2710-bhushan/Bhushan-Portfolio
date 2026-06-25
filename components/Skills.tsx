@@ -103,7 +103,28 @@ const techBubbles = [
 ];
 
 export default function Skills() {
+  const [dynamicSkills, setDynamicSkills] = useState<any[] | null>(null);
+  const [dynamicBubbles, setDynamicBubbles] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    fetch("/api/portfolio")
+      .then(res => res.json())
+      .then(data => {
+        if (data) {
+          if (Array.isArray(data.skills)) {
+            setDynamicSkills(data.skills);
+          }
+          if (Array.isArray(data.techBubbles)) {
+            setDynamicBubbles(data.techBubbles);
+          }
+        }
+      })
+      .catch(err => console.error("Error loading dynamic skills:", err));
+  }, []);
+
   const r1 = useReveal();
+  const activeGroups = dynamicSkills || skillGroups;
+  const activeBubbles = dynamicBubbles || techBubbles;
 
   return (
     <section id="skills" className="skills-section" style={{ padding: '120px 60px', background: 'rgba(5,13,24,0.6)' }}>
@@ -117,7 +138,7 @@ export default function Skills() {
 
         {/* Skill bars grid */}
         <div className="skills-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 36, marginBottom: 60 }}>
-          {skillGroups.map((group, gi) => (
+          {activeGroups.map((group, gi) => (
             <div key={group.label} className="glass-card" style={{
               padding: '28px',
               clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))',
@@ -131,7 +152,7 @@ export default function Skills() {
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: group.color, boxShadow: `0 0 8px ${group.color}` }} />
                 {group.label}
               </div>
-              {group.skills.map((s, i) => (
+              {group.skills.map((s: any, i: number) => (
                 <SkillBar key={s.name} name={s.name} level={s.level} color={group.color} delay={i * 100 + gi * 200} />
               ))}
             </div>
@@ -144,7 +165,7 @@ export default function Skills() {
             Technologies & Tools
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            {techBubbles.map((t, i) => (
+            {activeBubbles.map((t, i) => (
               <div key={t} className="hover-target" style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: '0.7rem',
